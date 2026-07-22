@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect, useRef } from 'react';
 import { requestTrace } from './api.js';
 import { getExample, DEFAULT_EXAMPLE } from './examples.js';
+import { findStepOverIndex, findStepOutIndex } from './utils/stepNav.js';
 
 const STORAGE_KEY = 'stepwise.session';
 const LANGS = new Set(['python', 'c', 'cpp', 'java']);
@@ -41,6 +42,9 @@ function buildInitialState() {
     loadError: null,
     breakpoints: Array.isArray(saved?.breakpoints)
       ? saved.breakpoints.filter((n) => Number.isInteger(n) && n > 0)
+      : [],
+    watches: Array.isArray(saved?.watches)
+      ? saved.watches.filter((w) => typeof w === 'string' && w.trim()).map((w) => w.trim())
       : [],
     dirty: true,
   };
@@ -114,6 +118,16 @@ function reducer(state, action) {
       if (state.stepIndex >= max) return { ...state, playing: false };
       return { ...state, stepIndex: state.stepIndex + 1 };
     }
+    case 'STEP_OVER': {
+      if (!state.trace) return state;
+      const idx = findStepOverIndex(state.trace.steps, state.stepIndex);
+      return { ...state, stepIndex: idx, playing: false };
+    }
+    case 'STEP_OUT': {
+      if (!state.trace) return state;
+      const idx = findStepOutIndex(state.trace.steps, state.stepIndex);
+      return { ...state, stepIndex: idx, playing: false };
+    }
     case 'STEP_BACK':
       return { ...state, stepIndex: Math.max(0, state.stepIndex - 1), playing: false };
     case 'PLAY':
@@ -135,6 +149,13 @@ function reducer(state, action) {
         breakpoints: has ? state.breakpoints.filter((l) => l !== action.line) : [...state.breakpoints, action.line],
       };
     }
+    case 'ADD_WATCH': {
+      const name = (action.name || '').trim();
+      if (!name || state.watches.includes(name)) return state;
+      return { ...state, watches: [...state.watches, name] };
+    }
+    case 'REMOVE_WATCH':
+      return { ...state, watches: state.watches.filter((w) => w !== action.name) };
     default:
       return state;
   }
@@ -165,12 +186,13 @@ export function StoreProvider({ children }) {
           stdin: state.stdin,
           speed: state.speed,
           breakpoints: state.breakpoints,
+          watches: state.watches,
         })
       );
     } catch {
       // quota / private mode — ignore
     }
-  }, [state.theme, state.language, state.exampleId, state.code, state.stdin, state.speed, state.breakpoints]);
+  }, [state.theme, state.language, state.exampleId, state.code, state.stdin, state.speed, state.breakpoints, state.watches]);
 
   // autoplay timer
   useEffect(() => {

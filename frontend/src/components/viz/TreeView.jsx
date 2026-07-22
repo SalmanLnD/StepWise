@@ -42,9 +42,17 @@ function layoutTree(root, heapMap) {
   return { nodes, edges, width, height };
 }
 
+function tagLabel(t) {
+  if (t.isGlobal) return t.name;
+  const short = (t.frameName || '').replace(/^.*\./, '');
+  return short && short !== t.name ? `${t.name}·${short}` : t.name;
+}
+
 export default function TreeView({ root, heapMap, prevHeapMap, tags }) {
   const { nodes, edges, width, height } = useMemo(() => layoutTree(root, heapMap), [root, heapMap]);
   const pos = new Map(nodes.map((n) => [n.id, { cx: n.x * NODE_W + NODE_W / 2 + 8, cy: n.depth * LEVEL_H + R + 12 }]));
+
+  const rootTags = tags.get(root.id) ?? [];
 
   return (
     <div className="struct-card tree-svg-wrap">
@@ -52,9 +60,9 @@ export default function TreeView({ root, heapMap, prevHeapMap, tags }) {
         <span className="badge">tree</span>
         <span className="lbl">{root.label}</span>
         <span className="var-tags">
-          {(tags.get(root.id) ?? []).map((t) => (
-            <span key={t.name} className="var-tag">
-              {t.name}
+          {rootTags.map((t) => (
+            <span key={`${t.frameId}-${t.name}`} className={`var-tag ${t.isGlobal ? 'global' : 'local'}`}>
+              {tagLabel(t)}
             </span>
           ))}
         </span>
@@ -87,10 +95,36 @@ export default function TreeView({ root, heapMap, prevHeapMap, tags }) {
               const pv = prev.fields.find(([pk]) => pk === k)?.[1];
               return pv !== undefined && !sameVal(pv, v);
             });
-          const nodeTags = (tags.get(n.id) ?? []).map((t) => t.name);
+          const nodeTags = tags.get(n.id) ?? [];
+          const isTreeRoot = n.id === root.id;
+          const hasGlobal = nodeTags.some((t) => t.isGlobal);
+          const hasLocal = nodeTags.some((t) => !t.isGlobal);
+          const tagged = nodeTags.length > 0;
+
+          let border = 'var(--border-strong)';
+          let background = 'var(--bg-3)';
+          let shadow = 'none';
+          if (isTreeRoot) {
+            border = 'var(--accent)';
+            background = 'var(--accent-soft)';
+            shadow = 'var(--glow-accent)';
+          } else if (hasGlobal) {
+            border = 'var(--accent)';
+            background = 'var(--accent-soft)';
+            shadow = 'var(--glow-accent)';
+          } else if (hasLocal) {
+            border = 'var(--accent-2)';
+            background = 'var(--accent-2-soft)';
+            shadow = 'var(--glow-cyan)';
+          } else if (changed) {
+            border = 'var(--accent)';
+            shadow = 'var(--glow-accent)';
+          }
+
           return (
             <div
               key={n.id}
+              className={`tree-node-bubble ${isTreeRoot ? 'is-tree-root' : ''} ${hasLocal && !hasGlobal ? 'is-local-ptr' : ''}`}
               style={{
                 position: 'absolute',
                 left: p.cx - R,
@@ -100,23 +134,34 @@ export default function TreeView({ root, heapMap, prevHeapMap, tags }) {
                 borderRadius: '50%',
                 display: 'grid',
                 placeItems: 'center',
-                background: nodeTags.length ? 'var(--accent-2-soft)' : 'var(--bg-3)',
-                border: `2px solid ${changed ? 'var(--accent)' : nodeTags.length ? 'var(--accent-2)' : 'var(--border-strong)'}`,
-                boxShadow: nodeTags.length ? 'var(--glow-cyan)' : changed ? 'var(--glow-accent)' : 'none',
+                background,
+                border: `${isTreeRoot ? 3 : 2}px solid ${border}`,
+                boxShadow: shadow,
                 fontFamily: 'var(--font-mono)',
                 fontWeight: 700,
                 fontSize: 13,
-                transition: 'left 380ms cubic-bezier(0.22,1,0.36,1), top 380ms cubic-bezier(0.22,1,0.36,1), border-color 250ms, background 250ms',
+                transition:
+                  'left 380ms cubic-bezier(0.22,1,0.36,1), top 380ms cubic-bezier(0.22,1,0.36,1), border-color 250ms, background 250ms',
                 animation: isNew ? 'sw-pop-in 480ms cubic-bezier(0.34,1.56,0.64,1)' : 'none',
                 zIndex: 2,
               }}
+              title={isTreeRoot ? 'Tree root' : tagged ? nodeTags.map(tagLabel).join(', ') : undefined}
             >
               {n.label}
+              {isTreeRoot && (
+                <div className="tree-root-badge" title="Structural tree root">
+                  root
+                </div>
+              )}
               {nodeTags.length > 0 && (
-                <div className="node-var-tags" style={{ top: -15 }}>
+                <div className="node-var-tags" style={{ top: isTreeRoot ? -28 : -15 }}>
                   {nodeTags.map((t) => (
-                    <span key={t} className="ptr-chip">
-                      {t}
+                    <span
+                      key={`${t.frameId}-${t.name}`}
+                      className={`ptr-chip ${t.isGlobal ? 'global' : 'local'}`}
+                      title={t.isGlobal ? `${t.name} (program)` : `${t.name} in ${t.frameName}`}
+                    >
+                      {tagLabel(t)}
                     </span>
                   ))}
                 </div>

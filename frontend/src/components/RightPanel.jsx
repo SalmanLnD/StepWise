@@ -46,13 +46,40 @@ export default function RightPanel() {
 }
 
 function StackTab({ step }) {
+  const { state, dispatch } = useStore();
   const prev = usePrevStep();
+  const [watchInput, setWatchInput] = useState('');
   const heapMap = useMemo(() => buildHeapMap(step), [step]);
   const prevLocals = useMemo(() => {
     const m = new Map();
     if (prev) for (const f of prev.frames) m.set(f.id, new Map(f.locals));
     return m;
   }, [prev]);
+
+  const resolveWatch = (name) => {
+    for (let i = step.frames.length - 1; i >= 0; i--) {
+      const f = step.frames[i];
+      const hit = f.locals.find(([n]) => n === name);
+      if (hit) return { value: hit[1], frame: f.name, frameId: f.id };
+    }
+    return null;
+  };
+
+  const resolvePrevWatch = (name) => {
+    if (!prev) return null;
+    for (let i = prev.frames.length - 1; i >= 0; i--) {
+      const hit = prev.frames[i].locals.find(([n]) => n === name);
+      if (hit) return hit[1];
+    }
+    return null;
+  };
+
+  const addWatch = () => {
+    const name = watchInput.trim();
+    if (!name) return;
+    dispatch({ type: 'ADD_WATCH', name });
+    setWatchInput('');
+  };
 
   return (
     <>
@@ -64,6 +91,62 @@ function StackTab({ step }) {
           ))}
         </div>
       </div>
+
+      <div className="watch-panel">
+        <div className="watch-head">
+          <span className="watch-title">Watch</span>
+          <form
+            className="watch-add"
+            onSubmit={(e) => {
+              e.preventDefault();
+              addWatch();
+            }}
+          >
+            <input
+              type="text"
+              placeholder="variable name"
+              value={watchInput}
+              onChange={(e) => setWatchInput(e.target.value)}
+              spellCheck={false}
+            />
+            <button type="submit" disabled={!watchInput.trim()} title="Add watch">
+              +
+            </button>
+          </form>
+        </div>
+        {state.watches.length === 0 ? (
+          <div className="watch-empty">Add names to track across steps</div>
+        ) : (
+          <div className="watch-list">
+            {state.watches.map((name) => {
+              const cur = resolveWatch(name);
+              const prevVal = resolvePrevWatch(name);
+              const changed = cur && prevVal !== null && !sameVal(prevVal, cur.value);
+              const fresh = cur && prevVal === null && prev;
+              return (
+                <div key={name} className={`watch-row ${changed || fresh ? 'changed' : ''} ${!cur ? 'missing' : ''}`}>
+                  <div className="watch-meta">
+                    <b>{name}</b>
+                    {cur && <span className="watch-frame">{cur.frame}</span>}
+                    <button
+                      type="button"
+                      className="watch-remove"
+                      title="Remove watch"
+                      onClick={() => dispatch({ type: 'REMOVE_WATCH', name })}
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <div className="watch-val">
+                    {cur ? fmtVal(cur.value, heapMap, 1) : <span className="watch-undef">not in scope</span>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       <div className="frames-col">
         {step.frames.map((f, fi) => {
           const isTop = fi === step.frames.length - 1;
@@ -83,7 +166,14 @@ function StackTab({ step }) {
                       const fresh = pl && !pl.has(n);
                       return (
                         <span key={n} className={`fv ${changed || fresh ? 'changed' : ''}`}>
-                          <b>{n}</b> = {fmtVal(v, heapMap, 1)}
+                          <b
+                            className="fv-name"
+                            title="Add to watch"
+                            onClick={() => dispatch({ type: 'ADD_WATCH', name: n })}
+                          >
+                            {n}
+                          </b>{' '}
+                          = {fmtVal(v, heapMap, 1)}
                         </span>
                       );
                     })}

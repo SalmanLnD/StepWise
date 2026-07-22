@@ -133,24 +133,38 @@ function analyse(step) {
 
 /** Collect variable name tags per heap id + index chips, from visible frames. */
 function collectVarInfo(step) {
-  const tags = new Map(); // heapId -> [{name, offset}]
+  const tags = new Map(); // heapId -> [{name, offset, frameName, isGlobal, isTop}]
   const chips = []; // {name, value} int locals from the top frame
   const scalars = []; // [{frame, name, val}]
   const frames = step.frames;
   const top = frames[frames.length - 1];
   const globalsFrame = frames[0];
+  // Globals + active frame: enough to contrast program root vs recursive locals
   const use = top === globalsFrame ? [top] : [globalsFrame, top];
 
   for (const f of use) {
+    const isGlobal = f === globalsFrame;
+    const isTop = f === top;
     for (const [name, v] of f.locals) {
       if (name === 'this') continue;
       if (isRefVal(v) && v.t === 'ref') {
         if (!tags.has(v.id)) tags.set(v.id, []);
-        tags.get(v.id).push({ name, offset: v.offset || 0, ptr: !!v.ptr });
+        const list = tags.get(v.id);
+        if (!list.some((t) => t.name === name && t.frameId === f.id)) {
+          list.push({
+            name,
+            offset: v.offset || 0,
+            ptr: !!v.ptr,
+            frameName: f.name,
+            frameId: f.id,
+            isGlobal,
+            isTop,
+          });
+        }
       } else if (v.t !== 'func' && v.t !== 'class') {
         scalars.push({ frameId: f.id, frameName: f.name, name, val: v });
         const iv = intOf(v);
-        if (iv !== null && f === top && isIndexName(name)) chips.push({ name, value: iv });
+        if (iv !== null && isTop && isIndexName(name)) chips.push({ name, value: iv });
       }
     }
   }

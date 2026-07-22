@@ -430,6 +430,12 @@
   transform: translateY(-1px) scale(1.04);
 }
 
+.t-btn.emphasis:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: var(--glow-accent);
+}
+
 .speed-box {
   display: flex;
   align-items: center;

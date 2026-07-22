@@ -12,6 +12,15 @@ import { Ref, Ptr, CharVal, FuncVal, ClassVal, RangeVal } from './values.js';
  * snapshot per loop/branch condition evaluation.
  */
 export class Interp {
+  static SHALLOW_BUILTINS = new Set([
+    'print', 'len', 'range', 'input', 'int', 'float', 'str', 'bool', 'abs', 'round', 'pow',
+    'min', 'max', 'sum', 'sorted', 'reversed', 'enumerate', 'zip', 'list', 'tuple', 'set',
+    'dict', 'ord', 'chr', 'type', 'map', 'filter', 'any', 'all', 'isinstance', 'divmod',
+    'id', 'iter', 'next', 'format', 'hex', 'bin', 'oct', 'repr', 'ascii', 'memoryview',
+    'printf', 'scanf', 'malloc', 'calloc', 'free', 'sizeof', 'println', 'printf',
+    'System.out.println', 'Math.max', 'Math.min', 'Math.abs',
+  ]);
+
   constructor(ctx) {
     this.ctx = ctx;
     this.blockScoped = true; // Python subclass sets false
@@ -40,7 +49,65 @@ export class Interp {
     return m.call(this, node);
   }
 
+  /** True if this AST fragment evaluates a user/builtin call. */
+  exprHasCall(node) {
+    if (!node || typeof node !== 'object') return false;
+    if (node.type === 'Call') return true;
+    for (const v of Object.values(node)) {
+      if (Array.isArray(v)) {
+        if (v.some((x) => this.exprHasCall(x))) return true;
+      } else if (v && typeof v === 'object' && typeof v.type === 'string') {
+        if (this.exprHasCall(v)) return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * True when evaluating `node` may push a user/method frame.
+   * Skips shallow builtins (print, max, len, …) so we don't pause twice on them.
+   */
+  exprMayEnterCall(node) {
+    if (!node || typeof node !== 'object') return false;
+    if (node.type === 'Call') {
+      const cal = node.callee;
+      if (cal?.type === 'Attr') return true;
+      if (cal?.type === 'Name') {
+        if (!Interp.SHALLOW_BUILTINS.has(cal.id)) return true;
+      } else if (cal) {
+        return true;
+      }
+      return (node.args || []).some((a) => this.exprMayEnterCall(a));
+    }
+    for (const v of Object.values(node)) {
+      if (Array.isArray(v)) {
+        if (v.some((x) => this.exprMayEnterCall(x))) return true;
+      } else if (v && typeof v === 'object' && typeof v.type === 'string') {
+        if (this.exprMayEnterCall(v)) return true;
+      }
+    }
+    return false;
+  }
+
+  /** Pause on the statement line before diving into callee frames. */
+  preCallStep(node, note) {
+    this.ctx.step(node.line, 'line', note || '→ call');
+  }
+
+  describePendingCall(expr) {
+    if (!expr) return '→ call';
+    if (expr.type === 'Call') {
+      let name = '';
+      if (expr.callee?.type === 'Name') name = expr.callee.id;
+      else if (expr.callee?.type === 'Attr') name = `${this.targetName(expr.callee.obj)}.${expr.callee.name}`;
+      return name ? `→ ${name}(…)` : '→ call';
+    }
+    if (expr.type === 'Assign') return `→ ${this.targetName(expr.targets?.[0]) ?? '…'} = …`;
+    return '→ call';
+  }
+
   stmt_ExprStmt(node) {
+    if (this.exprMayEnterCall(node.expr)) this.preCallStep(node, this.describePendingCall(node.expr));
     const v = this.evalExpr(node.expr);
     let note = '';
     if (node.expr.type === 'Call') note = this.describeCall(node.expr, v);
@@ -53,6 +120,8 @@ export class Interp {
   }
 
   stmt_VarDecl(node) {
+    const hasCall = node.decls.some((d) => d.init && this.exprMayEnterCall(d.init));
+    if (hasCall) this.preCallStep(node, `→ ${node.decls.map((d) => d.name).join(', ')} = …`);
     const notes = [];
     for (const d of node.decls) {
       const value = this.evalDeclInit(d, node);
@@ -68,6 +137,9 @@ export class Interp {
   }
 
   stmt_Assign(node) {
+    if (this.exprMayEnterCall(node.value)) {
+      this.preCallStep(node, `→ ${this.targetName(node.targets[0])} = …`);
+    }
     const v = this.evalAssign(node);
     this.ctx.step(node.line, 'line', this.lastAssignNote || '');
     return v;
@@ -262,6 +334,9 @@ export class Interp {
   }
 
   stmt_Return(node) {
+    if (node.value && this.exprMayEnterCall(node.value)) {
+      this.preCallStep(node, '→ return …');
+    }
     const v = node.value ? this.evalExpr(node.value) : null;
     // Keep the return value reachable across this snapshot: evalExpr clears
     // alloc pins when it finishes, and the value is not yet in any frame

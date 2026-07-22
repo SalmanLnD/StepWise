@@ -15,7 +15,13 @@ export default function ControlsBar() {
   useEffect(() => {
     const onKey = (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.closest('.monaco-editor')) return;
-      if (e.key === 'ArrowRight') dispatch({ type: 'STEP_FWD' });
+      if (e.key === 'ArrowRight' && e.shiftKey) {
+        e.preventDefault();
+        dispatch({ type: 'STEP_OVER' });
+      } else if (e.key === 'ArrowRight' && e.altKey) {
+        e.preventDefault();
+        dispatch({ type: 'STEP_OUT' });
+      } else if (e.key === 'ArrowRight') dispatch({ type: 'STEP_FWD' });
       else if (e.key === 'ArrowLeft') dispatch({ type: 'STEP_BACK' });
       else if (e.key === ' ') {
         e.preventDefault();
@@ -34,6 +40,10 @@ export default function ControlsBar() {
       else if (s.event === 'return') markers.push({ i, cls: 'ret' });
     });
   }
+
+  const atEnd = !has || state.stepIndex >= total - 1;
+  const curNote = has ? state.trace.steps[state.stepIndex].note : '';
+  const pendingCall = typeof curNote === 'string' && curNote.startsWith('→');
 
   return (
     <footer className="controls">
@@ -66,13 +76,39 @@ export default function ControlsBar() {
           )}
         </button>
         <button
-          className="t-btn"
-          title="Next step (→)"
-          disabled={!has || state.stepIndex >= total - 1}
+          className={`t-btn ${pendingCall ? 'emphasis' : ''}`}
+          title="Step into (→) — enter the next call"
+          disabled={atEnd}
           onClick={() => dispatch({ type: 'STEP_FWD' })}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M15.5 6H18v12h-2.5zM5 6v12l9-6z" />
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 4v12" />
+            <path d="M8 12l4 4 4-4" />
+            <path d="M5 20h14" />
+          </svg>
+        </button>
+        <button
+          className="t-btn"
+          title="Step over (Shift+→) — run call without entering"
+          disabled={atEnd}
+          onClick={() => dispatch({ type: 'STEP_OVER' })}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 14v-2a4 4 0 0 1 4-4h7" />
+            <path d="M12 5l4 3-4 3" />
+            <path d="M5 20h14" />
+          </svg>
+        </button>
+        <button
+          className="t-btn"
+          title="Step out (Alt+→) — finish current function"
+          disabled={atEnd || (has && state.trace.steps[state.stepIndex].frames.length <= 1)}
+          onClick={() => dispatch({ type: 'STEP_OUT' })}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 20V8" />
+            <path d="M8 12l4-4 4 4" />
+            <path d="M5 4h14" />
           </svg>
         </button>
       </div>
@@ -119,8 +155,9 @@ export default function ControlsBar() {
         <div className="timeline-labels">
           <span>step {has ? state.stepIndex + 1 : 0} / {total}</span>
           <span>
-            {has && state.trace.steps[state.stepIndex].event === 'call' && '↘ function call'}
-            {has && state.trace.steps[state.stepIndex].event === 'return' && '↖ return'}
+            {pendingCall && '→ about to call'}
+            {has && !pendingCall && state.trace.steps[state.stepIndex].event === 'call' && '↘ function call'}
+            {has && !pendingCall && state.trace.steps[state.stepIndex].event === 'return' && '↖ return'}
           </span>
           <span>{has ? `line ${state.trace.steps[state.stepIndex].line}` : '—'}</span>
         </div>
