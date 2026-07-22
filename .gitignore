@@ -13,3 +13,4 @@ coverage/
 .idea/
 *.tmp
 scripts/_tmp_*.js
+.vercel
