@@ -263,7 +263,15 @@ export class Interp {
 
   stmt_Return(node) {
     const v = node.value ? this.evalExpr(node.value) : null;
-    this.ctx.step(node.line, 'return', `return ${node.value ? this.repr(v) : ''}`.trim());
+    // Keep the return value reachable across this snapshot: evalExpr clears
+    // alloc pins when it finishes, and the value is not yet in any frame
+    // (e.g. `return Node(key)`), so GC would otherwise free it here.
+    this.ctx.tempRoots.push([v]);
+    try {
+      this.ctx.step(node.line, 'return', `return ${node.value ? this.repr(v) : ''}`.trim());
+    } finally {
+      this.ctx.tempRoots.pop();
+    }
     throw new ReturnSignal(v);
   }
 
