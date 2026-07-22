@@ -14,3 +14,6 @@ coverage/
 *.tmp
 scripts/_tmp_*.js
 .vercel
+.vercel-*.tmp
+.env.local
+.env*
