@@ -1,5 +1,7 @@
+const API_BASE = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
+
 export async function requestTrace(language, code, stdin) {
-  const res = await fetch('/api/trace', {
+  const res = await fetch(`${API_BASE}/api/trace`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ language, code, stdin }),

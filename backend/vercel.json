@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "version": 2,
+  "framework": "express",
+  "rewrites": [{ "source": "/(.*)", "destination": "/src/server.js" }],
+  "functions": {
+    "src/server.js": {
+      "maxDuration": 60,
+      "includeFiles": "wasm/**"
+    }
+  }
+}
