@@ -1,0 +1,20 @@
+{
+  "name": "stepwise-backend",
+  "version": "1.0.0",
+  "description": "StepWise trace engine - tracing interpreters for Python, C, C++ and Java",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "smoke": "node scripts/smoke.js",
+    "user-code": "node scripts/user-code.js",
+    "check-examples": "node scripts/check-examples.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^4.22.2",
+    "tree-sitter-wasms": "^0.1.13",
+    "web-tree-sitter": "^0.20.8"
+  }
+}

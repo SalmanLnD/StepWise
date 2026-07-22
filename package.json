@@ -1,0 +1,15 @@
+{
+  "name": "stepwise",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "StepWise — interactive code execution visualizer",
+  "scripts": {
+    "dev:frontend": "npm run dev --prefix frontend",
+    "dev:backend": "npm run start --prefix backend",
+    "build": "npm run build --prefix frontend",
+    "start": "npm run start --prefix backend",
+    "smoke": "npm run smoke --prefix backend",
+    "user-code": "npm run user-code --prefix backend"
+  }
+}

@@ -1,0 +1,238 @@
+/* ============ StepWise design tokens ============ */
+
+:root {
+  --font-ui: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Cascadia Code', Consolas, monospace;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 180ms;
+  --dur-med: 340ms;
+  --dur-slow: 550ms;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg-0: #0a0c12;
+  --bg-1: #0f1219;
+  --bg-2: #151925;
+  --bg-3: #1c2130;
+  --border: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.13);
+  --text-0: #eef0f8;
+  --text-1: #aab1c5;
+  --text-2: #6b7288;
+  --accent: #7c6cff;
+  --accent-soft: rgba(124, 108, 255, 0.16);
+  --accent-2: #22d3ee;
+  --accent-2-soft: rgba(34, 211, 238, 0.14);
+  --green: #34d399;
+  --green-soft: rgba(52, 211, 153, 0.15);
+  --amber: #fbbf24;
+  --amber-soft: rgba(251, 191, 36, 0.14);
+  --red: #f87171;
+  --red-soft: rgba(248, 113, 113, 0.14);
+  --pink: #f472b6;
+  --shadow-card: 0 2px 10px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --shadow-float: 0 12px 40px rgba(0, 0, 0, 0.5);
+  --glow-accent: 0 0 18px rgba(124, 108, 255, 0.35);
+  --glow-cyan: 0 0 16px rgba(34, 211, 238, 0.3);
+  --glass: rgba(21, 25, 37, 0.72);
+  --scrollbar: rgba(255, 255, 255, 0.14);
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg-0: #eef0f6;
+  --bg-1: #f7f8fc;
+  --bg-2: #ffffff;
+  --bg-3: #f0f2f8;
+  --border: rgba(15, 23, 42, 0.09);
+  --border-strong: rgba(15, 23, 42, 0.16);
+  --text-0: #16192a;
+  --text-1: #4b5165;
+  --text-2: #9298ab;
+  --accent: #6353f0;
+  --accent-soft: rgba(99, 83, 240, 0.1);
+  --accent-2: #0891b2;
+  --accent-2-soft: rgba(8, 145, 178, 0.1);
+  --green: #059669;
+  --green-soft: rgba(5, 150, 105, 0.1);
+  --amber: #d97706;
+  --amber-soft: rgba(217, 119, 6, 0.12);
+  --red: #dc2626;
+  --red-soft: rgba(220, 38, 38, 0.09);
+  --pink: #db2777;
+  --shadow-card: 0 1px 4px rgba(15, 23, 42, 0.06), 0 0 0 1px rgba(15, 23, 42, 0.04);
+  --shadow-float: 0 14px 40px rgba(15, 23, 42, 0.16);
+  --glow-accent: 0 0 16px rgba(99, 83, 240, 0.22);
+  --glow-cyan: 0 0 14px rgba(8, 145, 178, 0.2);
+  --glass: rgba(255, 255, 255, 0.8);
+  --scrollbar: rgba(15, 23, 42, 0.2);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font-ui);
+  background: var(--bg-0);
+  color: var(--text-0);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+button {
+  font-family: inherit;
+  border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+input,
+select,
+textarea {
+  font-family: inherit;
+  color: inherit;
+}
+
+/* ============ shared keyframes ============ */
+
+@keyframes sw-pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.6) translateY(8px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes sw-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sw-value-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(124, 108, 255, 0.55);
+  }
+  100% {
+    box-shadow: 0 0 0 12px rgba(124, 108, 255, 0);
+  }
+}
+
+@keyframes sw-cell-flash {
+  0% {
+    background: var(--accent-soft);
+    box-shadow: var(--glow-accent);
+  }
+  100% {
+    background: transparent;
+    box-shadow: none;
+  }
+}
+
+@keyframes sw-old-value-out {
+  from {
+    opacity: 0.85;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+}
+
+@keyframes sw-new-value-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes sw-frame-in {
+  0% {
+    opacity: 0;
+    transform: translateX(-18px) scale(0.94);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes sw-glow-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes sw-dash-flow {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
+@keyframes sw-freed-out {
+  to {
+    opacity: 0.28;
+    filter: grayscale(0.9);
+    transform: scale(0.96);
+  }
+}
+
+@keyframes sw-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
