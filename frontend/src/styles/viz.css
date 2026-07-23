@@ -74,7 +74,7 @@
   color: var(--text-0);
   box-shadow: var(--shadow-card);
   animation: sw-fade-up var(--dur-med) var(--ease-out);
-  max-width: 90%;
+  max-width: min(96%, 720px);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -88,6 +88,69 @@
   padding: 2px 8px;
   border-radius: 999px;
   font-family: var(--font-ui);
+  flex: none;
+}
+
+.step-note .step-src {
+  color: var(--text-0);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.step-note .step-annot {
+  color: var(--text-2);
+  opacity: 0.78;
+  font-size: 12px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.step-note .step-annot::before {
+  content: '·';
+  margin-right: 8px;
+  opacity: 0.5;
+}
+
+.step-note .step-annot-line {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-0);
+}
+
+.step-note .step-val {
+  display: inline-block;
+  margin: 0 1px;
+  padding: 1px 6px;
+  border-radius: 5px;
+  font-weight: 700;
+  font-size: 11.5px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+.step-note .step-bool {
+  flex: none;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-family: var(--font-ui);
+}
+
+.step-note .step-bool.yes {
+  background: rgba(52, 211, 153, 0.18);
+  color: var(--green);
+}
+
+.step-note .step-bool.no {
+  background: var(--red-soft);
+  color: var(--red);
 }
 
 .step-note .ev.line {

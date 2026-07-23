@@ -13,6 +13,11 @@
   gap: 10px;
   padding: 10px;
   min-height: 0;
+  transition: grid-template-columns 220ms var(--ease-out);
+}
+
+.app-main.right-collapsed {
+  grid-template-columns: minmax(340px, 31%) 1fr 44px;
 }
 
 .pane {
@@ -569,11 +574,83 @@
 
 /* ============ right panel ============ */
 
+.right-panel {
+  position: relative;
+}
+
+.right-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 6px 4px;
+  background: var(--bg-1);
+}
+
+.right-rail-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 10px 4px;
+  border: none;
+  border-radius: 10px;
+  background: var(--bg-2);
+  color: var(--text-2);
+  cursor: pointer;
+  transition: color var(--dur-fast), background var(--dur-fast), border-color var(--dur-fast);
+  border: 1px solid var(--border);
+}
+
+.right-rail-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.right-rail-icon {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.right-rail-label {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.panel-collapse-btn {
+  margin-left: auto;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-2);
+  color: var(--text-2);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.panel-collapse-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
 .tabs {
   display: flex;
   gap: 2px;
   padding: 8px 8px 0;
   flex: none;
+  align-items: center;
 }
 
 .tab {

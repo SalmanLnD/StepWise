@@ -8,7 +8,6 @@ import ListChainView from './viz/ListChainView.jsx';
 import TreeView from './viz/TreeView.jsx';
 import GraphView from './viz/GraphView.jsx';
 import ObjectsView from './viz/ObjectsView.jsx';
-import FramesView from './viz/FramesView.jsx';
 
 /**
  * Analyse the heap of one step and group objects into renderable structures.
@@ -206,7 +205,7 @@ export default function CanvasPane() {
                 {state.trace.error.line != null && <span className="line">line {state.trace.error.line}</span>}
               </div>
             )}
-            <StepNote step={step} />
+            <StepNote step={step} code={state.code} />
             {varInfo.scalars.length > 0 && (
               <div className="viz-section">
                 <div className="viz-section-title">Variables</div>
@@ -215,12 +214,6 @@ export default function CanvasPane() {
                   prevScalars={prevVarInfo?.scalars ?? []}
                   heapMap={analysis.heapMap}
                 />
-              </div>
-            )}
-            {step.frames.length > 2 && (
-              <div className="viz-section">
-                <div className="viz-section-title">Call stack · recursion</div>
-                <FramesView step={step} prev={prev} heapMap={analysis.heapMap} />
               </div>
             )}
             {analysis.structures.length > 0 && (
@@ -273,11 +266,87 @@ function Structure({ s, heapMap, prevHeapMap, tags, chips, step }) {
   }
 }
 
-function StepNote({ step }) {
+/** Parse engine notes like `if nums[j]⟦7⟧>nums[j+1]⟦3⟧ → False`. */
+function parseStepNote(note, event) {
+  if (!note) return { kind: event, annotation: null, boolResult: null };
+  const cond = note.match(/^(if|while|for|do-while)\s+(.+?)\s*→\s*(True|False|true|false)\s*$/);
+  if (cond) {
+    return {
+      kind: cond[1],
+      annotation: cond[2].trim(),
+      boolResult: /^(True|true)$/.test(cond[3]),
+    };
+  }
+  const forIn = note.match(/^for\s+(.+)$/);
+  if (forIn && event === 'line') {
+    return { kind: 'for', annotation: forIn[1].trim(), boolResult: null };
+  }
+  if (event === 'call' || (typeof note === 'string' && note.startsWith('→'))) {
+    return { kind: 'call', annotation: note, boolResult: null };
+  }
+  if (event === 'return') {
+    return { kind: 'return', annotation: note, boolResult: null };
+  }
+  return { kind: event, annotation: note, boolResult: null };
+}
+
+function sourceLineAt(code, line) {
+  if (!code || !line) return '';
+  const lines = code.split('\n');
+  return (lines[line - 1] ?? '').trim();
+}
+
+/** Render `nums[j]⟦7⟧>nums[k]⟦3⟧` with values in a faint style. */
+function AnnotatedText({ text }) {
+  if (!text) return null;
+  const parts = text.split(/(\u27E6[^\u27E7]*\u27E7)/g);
+  return (
+    <span className="step-annot-line">
+      {parts.map((p, i) => {
+        if (p.startsWith('\u27E6') && p.endsWith('\u27E7')) {
+          return (
+            <span key={i} className="step-val">
+              {p.slice(1, -1)}
+            </span>
+          );
+        }
+        return <span key={i}>{p}</span>;
+      })}
+    </span>
+  );
+}
+
+function StepNote({ step, code }) {
+  const src = sourceLineAt(code, step.line);
+  const parsed = parseStepNote(step.note, step.event);
+  const isCond =
+    parsed.kind === 'if' ||
+    parsed.kind === 'while' ||
+    parsed.kind === 'for' ||
+    parsed.kind === 'do-while';
+  const isCall = step.event === 'call' || (typeof step.note === 'string' && step.note.startsWith('→'));
+  const label = isCond ? parsed.kind : isCall ? 'call' : step.event;
+  const evClass = isCall ? 'call' : step.event === 'return' ? 'return' : step.event;
+  const hasMarkedVals = parsed.annotation && parsed.annotation.includes('\u27E6');
+
   return (
     <div className="step-note" key={step.i}>
-      <span className={`ev ${step.event}`}>{step.event}</span>
-      <span>{step.note || `line ${step.line}`}</span>
+      <span className={`ev ${evClass}`}>{label}</span>
+      {isCond && hasMarkedVals ? (
+        <AnnotatedText text={parsed.annotation} />
+      ) : (
+        <>
+          <span className="step-src">{src || step.note || `line ${step.line}`}</span>
+          {parsed.annotation && parsed.annotation !== src && !parsed.annotation.startsWith('line ') && (
+            <span className="step-annot">{parsed.annotation}</span>
+          )}
+        </>
+      )}
+      {parsed.boolResult != null && (
+        <span className={`step-bool ${parsed.boolResult ? 'yes' : 'no'}`}>
+          {parsed.boolResult ? 'True' : 'False'}
+        </span>
+      )}
     </div>
   );
 }

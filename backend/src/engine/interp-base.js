@@ -231,7 +231,7 @@ export class Interp {
 
   stmt_If(node) {
     const c = this.truthy(this.evalExpr(node.cond));
-    this.ctx.step(node.cond.line ?? node.line, 'line', `if → ${this.reprBool(c)}`);
+    this.ctx.step(node.cond.line ?? node.line, 'line', this.condNote('if', node.cond, c));
     if (c) this.execBlock(node.then);
     else if (node.else) {
       if (node.else.length === 1 && node.else[0].type === 'If') this.execStmt(node.else[0]);
@@ -243,7 +243,7 @@ export class Interp {
     for (;;) {
       this.ctx.tick(node.line);
       const c = this.truthy(this.evalExpr(node.cond));
-      this.ctx.step(node.cond.line ?? node.line, 'line', `while → ${this.reprBool(c)}`);
+      this.ctx.step(node.cond.line ?? node.line, 'line', this.condNote('while', node.cond, c));
       if (!c) break;
       try {
         this.execBlock(node.body);
@@ -264,7 +264,7 @@ export class Interp {
         if (sig !== CONTINUE) throw sig;
       }
       const c = this.truthy(this.evalExpr(node.cond));
-      this.ctx.step(node.cond.line ?? node.line, 'line', `do-while → ${this.reprBool(c)}`);
+      this.ctx.step(node.cond.line ?? node.line, 'line', this.condNote('do-while', node.cond, c));
       if (!c) break;
     }
   }
@@ -279,7 +279,7 @@ export class Interp {
         let c = true;
         if (node.cond) {
           c = this.truthy(this.evalExpr(node.cond));
-          this.ctx.step(node.cond.line ?? node.line, 'line', `for → ${this.reprBool(c)}`);
+          this.ctx.step(node.cond.line ?? node.line, 'line', this.condNote('for', node.cond, c));
         }
         if (!c) break;
         try {
@@ -295,6 +295,177 @@ export class Interp {
     }
   }
 
+  /** Note like `if a(5)>b(7) → False` for the line tracker. */
+  condNote(kind, condNode, boolResult) {
+    const annotated = this.annotateExpr(condNode);
+    return `${kind} ${annotated} → ${this.reprBool(boolResult)}`;
+  }
+
+  displayOp(op) {
+    const map = {
+      '==': '==',
+      '!=': '!=',
+      '<>': '!=',
+      '<': '<',
+      '<=': '<=',
+      '>': '>',
+      '>=': '>=',
+      '&&': '&&',
+      '||': '||',
+      and: ' and ',
+      or: ' or ',
+      is: ' is ',
+      'is not': ' is not ',
+      in: ' in ',
+      'not in': ' not in ',
+    };
+    return map[op] ?? op;
+  }
+
+  /** Compact value for inline condition annotations. */
+  reprCompact(v) {
+    if (v === null || v === undefined) return this.repr(v);
+    if (typeof v === 'boolean') return this.reprBool(v);
+    if (typeof v === 'number' || typeof v === 'string') return this.repr(v);
+    if (v instanceof RangeVal) {
+      // Show iteration count / bound — e.g. range(n-1-i) → 4
+      return String(v.toArray().length);
+    }
+    if (v instanceof Ref) {
+      const obj = this.ctx.heap.deref(v);
+      if (!obj) return 'ref';
+      if (obj.kind === 'object' && obj.meta?.className) return `<${obj.meta.className}>`;
+      if (obj.kind === 'array') return `[${obj.items.length}]`;
+      if (obj.kind === 'map') return `{${obj.entries.length}}`;
+      if (obj.kind === 'set') return `{${obj.items.length}}`;
+      return obj.label || 'obj';
+    }
+    if (v instanceof FuncVal) return `ƒ ${v.name}`;
+    if (v instanceof ClassVal) return v.name;
+    if (Array.isArray(v)) return String(v.length);
+    return this.repr(v);
+  }
+
+  isCompareOp(op) {
+    return (
+      op === '<' ||
+      op === '>' ||
+      op === '<=' ||
+      op === '>=' ||
+      op === '==' ||
+      op === '!=' ||
+      op === '<>' ||
+      op === 'is' ||
+      op === 'is not' ||
+      op === 'in' ||
+      op === 'not in'
+    );
+  }
+
+  /** Rebuild a short source-like string (no live values). */
+  exprSource(node) {
+    if (!node || typeof node !== 'object') return '…';
+    try {
+      switch (node.type) {
+        case 'Name':
+          return node.id;
+        case 'Num':
+          return String(node.value);
+        case 'Bool':
+          return this.reprBool(node.value);
+        case 'Null':
+          return this.repr(null);
+        case 'Str':
+        case 'Char':
+          return this.repr(node.value ?? node);
+        case 'Bin':
+          return `${this.exprSource(node.l)}${this.displayOp(node.op)}${this.exprSource(node.r)}`;
+        case 'Logic':
+          return `${this.exprSource(node.l)}${node.op === '&&' ? ' and ' : ' or '}${this.exprSource(node.r)}`;
+        case 'Unary': {
+          if (node.op === 'not' || node.op === '!') {
+            return `${node.op === 'not' ? 'not ' : '!'}${this.exprSource(node.operand)}`;
+          }
+          if (node.op === '-' || node.op === '+') return `${node.op}${this.exprSource(node.operand)}`;
+          if (node.op === '*') return `*${this.exprSource(node.operand)}`;
+          return this.exprSource(node.operand);
+        }
+        case 'Attr':
+          return `${this.exprSource(node.obj)}.${node.name}`;
+        case 'Index':
+          return `${this.exprSource(node.obj)}[${this.exprSource(node.index)}]`;
+        case 'Call': {
+          let name = '…';
+          if (node.callee?.type === 'Name') name = node.callee.id;
+          else if (node.callee?.type === 'Attr') name = `${this.exprSource(node.callee.obj)}.${node.callee.name}`;
+          const args = (node.args || []).map((a) => this.exprSource(a)).join(', ');
+          return `${name}(${args})`;
+        }
+        default:
+          return '…';
+      }
+    } catch {
+      return '…';
+    }
+  }
+
+  /** Wrap a final value for the line tracker (leading space; frontend highlights). */
+  valMark(v) {
+    return ` \u27E6${this.reprCompact(v)}\u27E7`;
+  }
+
+  /**
+   * Annotate a condition with only final operand values, e.g. `nums[j] ⟦7⟧ > nums[j+1] ⟦3⟧`.
+   */
+  annotateExpr(node) {
+    if (!node || typeof node !== 'object') return '…';
+    try {
+      switch (node.type) {
+        case 'Name':
+          return `${node.id}${this.valMark(this.expr_Name(node))}`;
+        case 'Num':
+          return String(node.value);
+        case 'Bool':
+          return this.reprBool(node.value);
+        case 'Null':
+          return this.repr(null);
+        case 'Str':
+        case 'Char':
+          return this.repr(node.value ?? node);
+        case 'Bin': {
+          if (this.isCompareOp(node.op)) {
+            const lv = this.evalExpr(node.l);
+            const rv = this.evalExpr(node.r);
+            const op = this.displayOp(node.op).trim();
+            return `${this.exprSource(node.l)}${this.valMark(lv)} ${op} ${this.exprSource(node.r)}${this.valMark(rv)}`;
+          }
+          // arithmetic / other: show source + final result only
+          return `${this.exprSource(node)}${this.valMark(this.evalExpr(node))}`;
+        }
+        case 'Logic': {
+          const op = node.op === '&&' ? ' and ' : ' or ';
+          return `${this.annotateExpr(node.l)}${op}${this.annotateExpr(node.r)}`;
+        }
+        case 'Unary': {
+          if (node.op === 'not' || node.op === '!') {
+            const pref = node.op === 'not' ? 'not ' : '!';
+            return `${pref}${this.annotateExpr(node.operand)}`;
+          }
+          return `${this.exprSource(node)}${this.valMark(this.evalExpr(node))}`;
+        }
+        case 'Attr':
+        case 'Index':
+        case 'Call':
+          return `${this.exprSource(node)}${this.valMark(this.evalExpr(node))}`;
+        default:
+          break;
+      }
+      return `${this.exprSource(node)}${this.valMark(this.evalExpr(node))}`;
+    } catch {
+      return '…';
+    }
+  }
+
   stmt_ForIn(node) {
     const iterable = this.evalExpr(node.iter);
     const items = this.iterableToArray(iterable, node);
@@ -307,7 +478,11 @@ export class Interp {
         if (node.targets.length === 1) {
           if (scoped) this.ctx.frame.declare(node.targets[0], item);
           else this.ctx.frame.set(node.targets[0], item);
-          this.ctx.step(node.line, 'line', `${node.targets[0]} = ${this.repr(item)}`);
+          this.ctx.step(
+            node.line,
+            'line',
+            `for ${node.targets[0]}${this.valMark(item)} in ${this.exprSource(node.iter)}${this.valMark(iterable)}`
+          );
         } else {
           const parts = this.iterableToArray(item, node);
           node.targets.forEach((t, i) => {
@@ -317,7 +492,7 @@ export class Interp {
           this.ctx.step(
             node.line,
             'line',
-            node.targets.map((t, i) => `${t} = ${this.repr(parts[i])}`).join(', ')
+            `for ${node.targets.map((t, i) => `${t}${this.valMark(parts[i])}`).join(', ')} in ${this.exprSource(node.iter)}${this.valMark(iterable)}`
           );
         }
         try {

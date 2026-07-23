@@ -4,20 +4,46 @@ import { buildHeapMap, fmtVal, previewObj, sameVal } from '../utils/format.js';
 
 const TABS = ['Stack', 'Heap', 'Console', 'Stats'];
 
-export default function RightPanel() {
+export default function RightPanel({ open = true, onToggle }) {
   const [tab, setTab] = useState('Stack');
   const { state } = useStore();
   const step = useCurrentStep();
   const err = state.trace?.error;
 
+  if (!open) {
+    return (
+      <aside className="pane right-rail">
+        <button
+          type="button"
+          className="right-rail-btn"
+          onClick={onToggle}
+          title="Expand inspector (Stack, Heap, Console)"
+          aria-label="Expand right panel"
+        >
+          <span className="right-rail-icon">‹</span>
+          <span className="right-rail-label">Inspect</span>
+        </button>
+      </aside>
+    );
+  }
+
   return (
-    <section className="pane">
+    <section className="pane right-panel">
       <div className="tabs">
         {TABS.map((t) => (
           <button key={t} className={`tab ${tab === t ? 'active' : ''}`} onClick={() => setTab(t)}>
             {t}
           </button>
         ))}
+        <button
+          type="button"
+          className="panel-collapse-btn"
+          onClick={onToggle}
+          title="Collapse panel"
+          aria-label="Collapse right panel"
+        >
+          ›
+        </button>
       </div>
       {err && !state.dirty && (
         <div className="error-banner">
