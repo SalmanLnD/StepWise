@@ -9,29 +9,7 @@ const LANGS = [
   { id: 'java', label: 'Java' },
 ];
 
-function ExpandIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 8V5a2 2 0 0 1 2-2h3" />
-      <path d="M16 3h3a2 2 0 0 1 2 2v3" />
-      <path d="M21 16v3a2 2 0 0 1-2 2h-3" />
-      <path d="M8 21H5a2 2 0 0 1-2-2v-3" />
-    </svg>
-  );
-}
-
-function CollapseIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M8 3v3a2 2 0 0 1-2 2H3" />
-      <path d="M21 8h-3a2 2 0 0 1-2-2V3" />
-      <path d="M3 16h3a2 2 0 0 1 2 2v3" />
-      <path d="M16 21v-3a2 2 0 0 1 2-2h3" />
-    </svg>
-  );
-}
-
-export default function TopBar({ layoutMode = null, onToggleVizFocus, onToggleEditorFocus }) {
+export default function TopBar({ isFullscreen = false, onToggleFullscreen }) {
   const { state, dispatch, run } = useStore();
 
   return (
@@ -52,55 +30,52 @@ export default function TopBar({ layoutMode = null, onToggleVizFocus, onToggleEd
         <span className="tagline">see the computer think</span>
       </div>
 
-      {layoutMode !== 'viz' && (
-        <>
-          <div className="lang-tabs">
-            {LANGS.map((l) => (
-              <button
-                key={l.id}
-                className={`lang-tab ${state.language === l.id ? 'active' : ''}`}
-                onClick={() => dispatch({ type: 'SET_LANGUAGE', language: l.id })}
-              >
-                {l.label}
-              </button>
-            ))}
-          </div>
-
-          <select
-            className="select"
-            value={state.exampleId ?? ''}
-            onChange={(e) => dispatch({ type: 'LOAD_EXAMPLE', id: e.target.value })}
-            title="Load an example"
+      <div className="lang-tabs">
+        {LANGS.map((l) => (
+          <button
+            key={l.id}
+            className={`lang-tab ${state.language === l.id ? 'active' : ''}`}
+            onClick={() => dispatch({ type: 'SET_LANGUAGE', language: l.id })}
           >
-            {(EXAMPLES[state.language] ?? []).map((ex) => (
-              <option key={ex.id} value={ex.id}>
-                {ex.topic} · {ex.title}
-              </option>
-            ))}
-          </select>
-        </>
-      )}
+            {l.label}
+          </button>
+        ))}
+      </div>
+
+      <select
+        className="select"
+        value={state.exampleId ?? ''}
+        onChange={(e) => dispatch({ type: 'LOAD_EXAMPLE', id: e.target.value })}
+        title="Load an example"
+      >
+        {(EXAMPLES[state.language] ?? []).map((ex) => (
+          <option key={ex.id} value={ex.id}>
+            {ex.topic} · {ex.title}
+          </option>
+        ))}
+      </select>
 
       <div className="topbar-right">
         <button
-          className={`icon-btn ${layoutMode === 'editor' ? 'active' : ''}`}
-          title={layoutMode === 'editor' ? 'Exit editor fullscreen (Esc / E)' : 'Editor fullscreen (E)'}
-          onClick={onToggleEditorFocus}
+          className={`icon-btn ${isFullscreen ? 'active' : ''}`}
+          title={isFullscreen ? 'Exit fullscreen (F11 / Esc)' : 'Fullscreen (F11)'}
+          onClick={onToggleFullscreen}
         >
-          {layoutMode === 'editor' ? <CollapseIcon /> : (
+          {isFullscreen ? (
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-              <path d="M14 2v6h6" />
-              <path d="M8 13h8M8 17h5" />
+              <path d="M8 3v3a2 2 0 0 1-2 2H3" />
+              <path d="M21 8h-3a2 2 0 0 1-2-2V3" />
+              <path d="M3 16h3a2 2 0 0 1 2 2v3" />
+              <path d="M16 21v-3a2 2 0 0 1 2-2h3" />
+            </svg>
+          ) : (
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 8V5a2 2 0 0 1 2-2h3" />
+              <path d="M16 3h3a2 2 0 0 1 2 2v3" />
+              <path d="M21 16v3a2 2 0 0 1-2 2h-3" />
+              <path d="M8 21H5a2 2 0 0 1-2-2v-3" />
             </svg>
           )}
-        </button>
-        <button
-          className={`icon-btn ${layoutMode === 'viz' ? 'active' : ''}`}
-          title={layoutMode === 'viz' ? 'Exit visualization fullscreen (Esc / F11)' : 'Visualization fullscreen (F11)'}
-          onClick={onToggleVizFocus}
-        >
-          {layoutMode === 'viz' ? <CollapseIcon /> : <ExpandIcon />}
         </button>
 
         <button

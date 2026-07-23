@@ -28,23 +28,6 @@
   grid-template-columns: 44px 1fr 44px;
 }
 
-.app-main.focus-viz {
-  grid-template-columns: 1fr minmax(280px, 22%);
-}
-
-.app-main.focus-viz.right-collapsed {
-  grid-template-columns: 1fr 44px;
-}
-
-.app-main.focus-editor {
-  grid-template-columns: 1fr;
-}
-
-.app.focus-viz .topbar .tagline,
-.app.focus-editor .topbar .tagline {
-  display: none;
-}
-
 .pane-focus-btn {
   margin-left: 8px;
   padding: 4px 10px;
