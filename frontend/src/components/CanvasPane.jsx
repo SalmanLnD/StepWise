@@ -195,7 +195,7 @@ export default function CanvasPane({ focusMode = false, onToggleFocus }) {
         <button
           type="button"
           className={`pane-focus-btn ${focusMode ? 'active' : ''}`}
-          title={focusMode ? 'Exit fullscreen (Esc)' : 'Fullscreen visualization (F)'}
+          title={focusMode ? 'Exit fullscreen (Esc / F11)' : 'Fullscreen visualization (F11)'}
           onClick={onToggleFocus}
         >
           {focusMode ? 'Exit fullscreen' : 'Fullscreen'}

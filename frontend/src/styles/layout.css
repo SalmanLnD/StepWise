@@ -20,15 +20,28 @@
   grid-template-columns: minmax(340px, 31%) 1fr 44px;
 }
 
-.app-main.focus-mode {
+.app-main.editor-collapsed {
+  grid-template-columns: 44px 1fr minmax(280px, 21%);
+}
+
+.app-main.editor-collapsed.right-collapsed {
+  grid-template-columns: 44px 1fr 44px;
+}
+
+.app-main.focus-viz {
   grid-template-columns: 1fr minmax(280px, 22%);
 }
 
-.app-main.focus-mode.right-collapsed {
+.app-main.focus-viz.right-collapsed {
   grid-template-columns: 1fr 44px;
 }
 
-.app.focus-mode .topbar .tagline {
+.app-main.focus-editor {
+  grid-template-columns: 1fr;
+}
+
+.app.focus-viz .topbar .tagline,
+.app.focus-editor .topbar .tagline {
   display: none;
 }
 
@@ -52,6 +65,72 @@
   color: var(--accent);
   border-color: var(--accent);
   background: var(--accent-soft);
+}
+
+.pane-collapse-btn {
+  margin-left: 6px;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-2);
+  color: var(--text-2);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.pane-collapse-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.left-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 6px 4px;
+  background: var(--bg-1);
+}
+
+.left-rail-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 10px 4px;
+  border-radius: 10px;
+  background: var(--bg-2);
+  color: var(--text-2);
+  cursor: pointer;
+  transition: color var(--dur-fast), background var(--dur-fast), border-color var(--dur-fast);
+  border: 1px solid var(--border);
+}
+
+.left-rail-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.left-rail-icon {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.left-rail-label {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .pane {

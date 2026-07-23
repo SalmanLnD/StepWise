@@ -42,7 +42,7 @@ function defineThemes(monaco) {
   });
 }
 
-export default function EditorPane() {
+export default function EditorPane({ focusMode = false, onToggleFocus, onCollapse }) {
   const { state, dispatch } = useStore();
   const step = useCurrentStep();
   const editorRef = useRef(null);
@@ -147,11 +147,30 @@ export default function EditorPane() {
         : 'ready';
 
   return (
-    <section className="pane">
+    <section className={`pane editor-pane ${focusMode ? 'focus' : ''}`}>
       <div className="pane-header">
         Code
         <span className="spacer" />
         {step && !state.dirty && <span style={{ textTransform: 'none', letterSpacing: 0 }}>line {step.line}</span>}
+        <button
+          type="button"
+          className={`pane-focus-btn ${focusMode ? 'active' : ''}`}
+          title={focusMode ? 'Exit editor fullscreen (Esc)' : 'Editor fullscreen (E)'}
+          onClick={onToggleFocus}
+        >
+          {focusMode ? 'Exit fullscreen' : 'Fullscreen'}
+        </button>
+        {onCollapse && (
+          <button
+            type="button"
+            className="pane-collapse-btn"
+            title="Collapse editor"
+            aria-label="Collapse editor"
+            onClick={onCollapse}
+          >
+            ‹
+          </button>
+        )}
       </div>
       <div className="editor-wrap">
         <Editor
