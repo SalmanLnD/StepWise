@@ -170,7 +170,7 @@ function collectVarInfo(step) {
   return { tags, chips, scalars };
 }
 
-export default function CanvasPane() {
+export default function CanvasPane({ focusMode = false, onToggleFocus }) {
   const { state } = useStore();
   const step = useCurrentStep();
   const prev = usePrevStep();
@@ -183,7 +183,7 @@ export default function CanvasPane() {
   const showEmpty = !step || state.dirty || !state.trace;
 
   return (
-    <section className="pane">
+    <section className={`pane canvas-pane ${focusMode ? 'focus' : ''}`}>
       <div className="pane-header">
         Visualization
         <span className="spacer" />
@@ -192,6 +192,14 @@ export default function CanvasPane() {
             {state.language === 'python' ? 'Python' : state.language === 'cpp' ? 'C++' : state.language.toUpperCase()}
           </span>
         )}
+        <button
+          type="button"
+          className={`pane-focus-btn ${focusMode ? 'active' : ''}`}
+          title={focusMode ? 'Exit fullscreen (Esc)' : 'Fullscreen visualization (F)'}
+          onClick={onToggleFocus}
+        >
+          {focusMode ? 'Exit fullscreen' : 'Fullscreen'}
+        </button>
       </div>
       <div className="canvas-scroll">
         {showEmpty ? (

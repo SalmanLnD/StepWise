@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useStore, useCurrentStep, usePrevStep } from '../store.jsx';
-import { buildHeapMap, fmtVal, previewObj, sameVal } from '../utils/format.js';
+import { buildHeapMap, fmtVal, previewObj, sameVal, resolveWatchPath } from '../utils/format.js';
 
 const TABS = ['Stack', 'Heap', 'Console', 'Stats'];
 
@@ -82,22 +82,12 @@ function StackTab({ step }) {
     return m;
   }, [prev]);
 
-  const resolveWatch = (name) => {
-    for (let i = step.frames.length - 1; i >= 0; i--) {
-      const f = step.frames[i];
-      const hit = f.locals.find(([n]) => n === name);
-      if (hit) return { value: hit[1], frame: f.name, frameId: f.id };
-    }
-    return null;
-  };
+  const resolveWatch = (name) => resolveWatchPath(name, step.frames, heapMap);
 
   const resolvePrevWatch = (name) => {
     if (!prev) return null;
-    for (let i = prev.frames.length - 1; i >= 0; i--) {
-      const hit = prev.frames[i].locals.find(([n]) => n === name);
-      if (hit) return hit[1];
-    }
-    return null;
+    const prevHeap = buildHeapMap(prev);
+    return resolveWatchPath(name, prev.frames, prevHeap)?.value ?? null;
   };
 
   const addWatch = () => {
@@ -130,7 +120,7 @@ function StackTab({ step }) {
           >
             <input
               type="text"
-              placeholder="variable name"
+              placeholder="root.key or nums[i]"
               value={watchInput}
               onChange={(e) => setWatchInput(e.target.value)}
               spellCheck={false}
@@ -141,7 +131,7 @@ function StackTab({ step }) {
           </form>
         </div>
         {state.watches.length === 0 ? (
-          <div className="watch-empty">Add names to track across steps</div>
+          <div className="watch-empty">Try root.key, self.left, or nums[i]</div>
         ) : (
           <div className="watch-list">
             {state.watches.map((name) => {
