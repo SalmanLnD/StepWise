@@ -1,10 +1,10 @@
+# Auto-deploy is handled by Vercel Git integration for the
+# `stepwise` (frontend/) and `stepwise-api` (backend/) projects.
+# Kept disabled so pushes don't double-deploy or fail on a stale VERCEL_TOKEN.
 name: Deploy to Vercel
 
 on:
-  push:
-    branches: [master, main]
-  pull_request:
-    branches: [master, main]
+  workflow_dispatch:
 
 jobs:
   deploy-api:
@@ -30,12 +30,7 @@ jobs:
       - name: Pull Vercel API project settings
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
-      - name: Deploy API Preview
-        if: github.event_name == 'pull_request'
-        run: vercel deploy --token=${{ secrets.VERCEL_TOKEN }}
-
       - name: Deploy API Production
-        if: github.event_name == 'push'
         run: vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
 
   deploy-frontend:
@@ -63,10 +58,5 @@ jobs:
       - name: Pull Vercel frontend project settings
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
-      - name: Deploy Frontend Preview
-        if: github.event_name == 'pull_request'
-        run: vercel deploy --token=${{ secrets.VERCEL_TOKEN }} --build-env VITE_API_URL=$VITE_API_URL
-
       - name: Deploy Frontend Production
-        if: github.event_name == 'push'
         run: vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --build-env VITE_API_URL=$VITE_API_URL
